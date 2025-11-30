@@ -2,96 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Processing...</title>
+    <title>Redirecting...</title>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Configuration ---
-            // GitHub Pages会将原始的、未编码的URL存储在sessionStorage中
-            const originalUrlKey = 'gh-redirect-URL';
-            const rawFilePrefix = '/download/raw/';
-            const publicFilePrefix = '/download/';
-            const githubRawBase = 'https://raw.githubusercontent.com/'; // 例如：https://raw.githubusercontent.com/dudu2024173/main/
+            // --- 路由逻辑 ---
+            // 1. 获取用户输入的完整URL路径，例如 "/download/raw/dudu.txt"
+            const path = window.location.pathname;
 
-            // --- Helper Function to Parse URL ---
-            // 获取查询参数 ?from=... 的值
-            function getQueryParameter(name) {
-                const urlParams = new URLSearchParams(window.location.search);
-                return urlParams.get(name);
+            // 2. 定义我们的触发下载的路径前缀
+            const DOWNLOAD_PREFIX = '/download/raw/';
+            const PUBLIC_PREFIX = '/download/';
+
+            // 3. 从URL中解析出你希望的下载文件名
+            //    例如，从 "/download/raw/folder/file.txt" 中得到 "folder/file.txt"
+            let targetFilePath = '';
+
+            if (path.startsWith(DOWNLOAD_PREFIX)) {
+                // 如果是下载路径
+                targetFilePath = path.substring(DOWNLOAD_PREFIX.length);
+                performDownload(targetFilePath);
+            } else if (path.startsWith(PUBLIC_PREFIX) && !path.startsWith(DOWNLOAD_PREFIX)) {
+                // 如果是公开访问路径 (不带/raw)
+                targetFilePath = path.substring(PUBLIC_PREFIX.length);
+                redirectToPublicFile(targetFilePath);
+            } else {
+                // 如果路径不匹配我们的规则，可以重定向到主页或显示一个空白页
+                // window.location.href = '/'; // 或者保持空白
+                console.log('Path not recognized. Staying on blank page.');
             }
-
-            // --- Main Logic ---
-            async function initiateDownload() {
-                try {
-                    // 1. 获取用户试图访问的原始URL
-                    // GitHub Pages在重定向到404页时，会把原始URL存入sessionStorage
-                    const rawOriginalUrl = sessionStorage.getItem(originalUrlKey);
-                    
-                    if (!rawOriginalUrl) {
-                        console.error('Original URL not found in sessionStorage.');
-                        closeWindow();
-                        return;
-                    }
-
-                    // 2. 解析URL，判断路径
-                    const urlObject = new URL(rawOriginalUrl);
-                    const pathName = urlObject.pathname;
-
-                    if (pathName.startsWith(rawFilePrefix)) {
-                        // 情况A：访问 /download/raw/filename.ext
-                        // 这是触发下载的路径
-                        
-                        // 3. 构建GitHub Raw文件的实际下载URL
-                        const fileName = pathName.substring(rawFilePrefix.length);
-                        // 从当前URL中提取仓库名和用户名
-                        const { hostname, pathname: repoPath } = window.location;
-                        const username = hostname.split('.')[0];
-                        const repoName = repoPath.split('/')[1];
-                        const rawFileUrl = `${githubRawBase}${username}/${repoName}/main/${fileName}`;
-
-                        console.log('Attempting to download:', rawFileUrl);
-
-                        // 4. 创建一个临时的<a>标签来触发下载
-                        const link = document.createElement('a');
-                        link.href = rawFileUrl;
-                        link.setAttribute('download', ''); // `download`属性提示浏览器下载而不是导航
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        // 5. 下载完成后，关闭标签页
-                        console.log('Download triggered. Closing window.');
-                        closeWindow();
-
-                    } else {
-                        // 情况B：访问 /download/filename.ext (不带 /raw/)
-                        // 如果是这种情况，我们什么都不做，或者可以重定向到一个展示页面
-                        // 根据你的需求，这里直接关闭
-                        console.log('Non-raw path accessed. Closing window.');
-                        closeWindow();
-                    }
-
-                } catch (error) {
-                    console.error('An error occurred during the download process:', error);
-                    closeWindow();
-                }
-            }
-            
-            // 安全地关闭窗口的函数
-            function closeWindow() {
-                // 对于脚本打开的窗口，可以直接关闭
-                window.close();
-                // 如果是用户手动打开的标签页，window.close()可能无效
-                // 我们可以显示一个空白页面或一个友好提示，但根据你“完全空白”的要求，这里什么都不做
-            }
-
-
-            // --- Start the Process ---
-            initiateDownload();
-
         });
+
+        /**
+         * 执行文件下载
+         * @param {string} filePath - 仓库内的文件路径，例如 "dudu.txt" 或 "assets/image.zip"
+         */
+        function performDownload(filePath) {
+            // 构建GitHub Raw文件的绝对URL
+            // 例如：https://raw.githubusercontent.com/dudu2024173/main/dudu.txt
+            const rawUrl = `https://raw.githubusercontent.com/dudu2024173/main/${filePath}`;
+
+            console.log(`Triggering download for: ${rawUrl}`);
+
+            // 创建一个隐藏的<a>标签来触发浏览器下载
+            const link = document.createElement('a');
+            link.href = rawUrl;
+            link.setAttribute('download', ''); // download属性提示浏览器下载而非导航
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 下载触发后，关闭当前标签页
+            closeWindow();
+        }
+        
+        /**
+         * 重定向到公开的文件路径 (让用户在浏览器中查看，而非下载)
+         * @param {string} filePath - 仓库内的文件路径
+         */
+        function redirectToPublicFile(filePath) {
+            const publicUrl = `https://dudu2024173.github.io/${filePath}`;
+            console.log(`Redirecting to public view: ${publicUrl}`);
+            window.location.replace(publicUrl);
+        }
+
+        /**
+         * 安全地关闭窗口
+         */
+        function closeWindow() {
+            // setTimeout gives the download a moment to initiate before closing
+            setTimeout(() => {
+                window.close();
+            }, 500);
+        }
     </script>
 </head>
 <body>
-    <!-- HTML Body 完全空白，符合要求 -->
+    <!-- 页面保持空白 -->
 </body>
 </html>
