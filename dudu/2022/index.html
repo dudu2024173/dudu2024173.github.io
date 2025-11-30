@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 25合一博客文章生成器</title>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    
+    <style>
+        /* ======================= 主编辑器界面样式 ======================= */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-bg: #f4f7f9;
+            --white-bg: #ffffff;
+            --border-color: #ced4da;
+            --text-color: #333;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .editor-panel {
+            flex: 1;
+            background: var(--white-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-panel {
+            flex: 1;
+            background: var(--white-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            box-sizing: border-box;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        h1 {
+            text-align: center;
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        input[type="text"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        #editor {
+            flex-grow: 1;
+            min-height: 300px;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .action-buttons button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: #0056b3; transform: translateY(-1px); }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-success:hover { background-color: #218838; transform: translateY(-1px); }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-danger:hover { background-color: #c82333; transform: translateY(-1px); }
+        .status-message {
+            text-align: center;
+            margin-top: 15px;
+            font-style: italic;
+            color: var(--secondary-color);
+        }
+        .preview-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .preview-container {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        /* ======================= 25种博客模板样式 ======================= */
+        /* T1: 极简主义 */
+        .template-T1 { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.7; color: #333; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+        .template-T1 h1 { font-weight: 300; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .template-T1 .meta { color: #999; font-size: 0.9em; margin-bottom: 20px; }
+
+        /* T2: 科技风 */
+        .template-T2 { font-family: 'Source Code Pro', monospace; background-color: #282c34; color: #abb2bf; padding: 40px; border-radius: 8px; }
+        .template-T2 h1 { color: #61dafb; }
+        .template-T2 .meta { color: #5c6370; }
+
+        /* T3: 读书笔记 */
+        .template-T3 { font-family: 'Merriweather', serif; background-color: #f7f3e9; color: #5c5c5c; padding: 50px; }
+        .template-T3 h1 { font-family: 'Playfair Display', serif; color: #3d3d3d; }
+        .template-T3 .meta { font-style: italic; color: #888; }
+
+        /* T4: 报纸版式 */
+        .template-T4 { font-family: 'Times New Roman', Times, serif; column-count: 2; column-gap: 30px; background: #fafafa; padding: 30px; }
+        .template-T4 h1 { column-span: all; text-align: center; font-size: 2.5em; margin-bottom: 0.5em; }
+        .template-T4 .meta { column-span: all; text-align: center; margin-bottom: 1em; border-bottom: 2px solid black; padding-bottom: 1em; }
+
+        /* T5: 暗黑模式 */
+        .template-T5 { font-family: 'Roboto', sans-serif; background-color: #121212; color: #e0e0e0; padding: 40px; }
+        .template-T5 h1 { color: #bb86fc; }
+        .template-T5 a { color: #03dac6; }
+
+        /* T6: 日记手帐 */
+        .template-T6 { font-family: 'Comic Sans MS', cursive, sans-serif; background: #fffef0; border: 1px dashed #ccc; padding: 30px; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); }
+        .template-T6 h1 { color: #d9534f; text-align: right; }
+        .template-T6 .meta { color: #777; text-align: right; }
+
+        /* T7: 学术论文 */
+        .template-T7 { font-family: 'Computer Modern', serif; max-width: 800px; margin: auto; }
+        .template-T7 h1 { text-align: center; font-size: 2em; margin-bottom: 0; }
+        .template-T7 .meta { text-align: center; font-size: 0.9em; color: #555; margin-top: 10px; }
+        .template-T7 p { text-align: justify; }
+
+        /* T8: 个人博客 - Medium风格 */
+        .template-T8 { font-family: 'Georgia', serif; max-width: 680px; margin: auto; color: #292929; }
+        .template-T8 h1 { font-size: 2.5em; font-weight: 700; }
+        .template-T8 .meta { font-family: 'Lato', sans-serif; color: #757575; }
+        .template-T8 p { font-size: 1.1em; line-height: 1.7; }
+
+        /* T9: 杂志风格 */
+        .template-T9 { font-family: 'Baskerville', 'Baskerville Old Face', 'Hoefler Text', Garamond, 'Times New Roman', serif; background: #fdfbf7; color: #4a3728; padding: 40px 60px; }
+        .template-T9 h1 { font-size: 3em; line-height: 1.2; letter-spacing: -1px; }
+        .template-T9 .meta { text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px; }
+        
+        /* T10: 赛博朋克 */
+        .template-T10 { font-family: 'Orbitron', sans-serif; background: #0a0e27; color: #0f0; padding: 20px; border: 2px solid #f0f; text-shadow: 0 0 5px #0f0; }
+        .template-T10 h1 { color: #f0f; animation: flicker 1.5s infinite alternate; }
+        @keyframes flicker { from, to { text-shadow: 0 0 5px #f0f; } 50% { text-shadow: 0 0 20px #f0f, 0 0 30px #0f0; } }
+
+        /* T11: 极端极简 */
+        .template-T11 { font-family: 'Arial', sans-serif; color: #000; max-width: 500px; margin: 100px auto; }
+        .template-T11 h1 { font-weight: normal; font-size: 1.5em; margin-bottom: 1em; }
+        .template-T11 .meta { display: none; } /* 隐藏元信息 */
+
+        /* T12: 复古打字机 */
+        .template-T12 { font-family: 'Special Elite', cursive; background: #f5eeda; color: #3b3a39; padding: 40px; border: 1px solid #ccc; }
+        .template-T12 h1 { border-bottom: 2px solid #3b3a39; }
+        .template-T12 p::first-letter { font-size: 3em; float: left; line-height: 1; margin-right: 8px; }
+
+        /* T13: 护眼模式 */
+        .template-T13 { font-family: 'SimSun', '宋体', serif; background-color: #e8f3e9; color: #3a3a3a; max-width: 800px; margin: auto; padding: 30px; }
+        .template-T13 h1 { color: #2c5f2d; font-weight: bold; }
+        .template-T13 .meta { color: #5a7a5b; }
+
+        /* T14: 童话故事 */
+        .template-T14 { font-family: 'Garamond', serif; background: url('https://www.transparenttextures.com/patterns/paper-fibers.png') #fff9e6; color: #5d4037; padding: 40px; text-align: center; }
+        .template-T14 h1 { font-family: 'Fairytale', cursive; font-size: 3em; color: #d84315; }
+        .template-T14 p { text-align: justify; }
+
+        /* T15: 商务报告 */
+        .template-T15 { font-family: 'Calibri', sans-serif; background-color: #f0f4f8; color: #33475b; max-width: 850px; margin: 20px auto; padding: 20px 50px; border-left: 5px solid #0091ae; }
+        .template-T15 h1 { color: #0091ae; font-weight: 600; }
+        .template-T15 .meta { font-weight: 300; color: #7a8b99; }
+        .template-T15 blockquote { border-left: 4px solid #cbd6e2; }
+
+        /* T16: 禅意花园 */
+        .template-T16 { font-family: 'Yu Mincho', 'SimSun', serif; background: #f5f5f5; color: #555; max-width: 600px; margin: 80px auto; padding: 40px; }
+        .template-T16 h1 { font-size: 1.8em; text-align: center; margin-bottom: 3em; }
+        .template-T16 p { font-size: 1.1em; line-height: 2; text-indent: 2em; }
+        .template-T16 .meta { display: none; }
+
+        /* T17: 西部风格 */
+        .template-T17 { font-family: 'Roboto Slab', serif; background-color: #f4eade; color: #4e342e; padding: 30px; border: 5px solid #6d4c41; }
+        .template-T17 h1 { font-family: 'Rye', cursive; color: #8d6e63; }
+        .template-T17 .meta { font-family: 'Courier New', monospace; }
+
+        /* T18: 现代艺术 */
+        .template-T18 { font-family: 'Helvetica', sans-serif; background: linear-gradient(45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab); background-size: 400% 400%; animation: gradient 15s ease infinite; color: #fff; padding: 50px; }
+        .template-T18 h1 { font-size: 3.5em; font-weight: 900; }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* T19: 官方文档 */
+        .template-T19 { font-family: 'Segoe UI', 'Roboto', sans-serif; background-color: #fff; color: #323130; max-width: 1000px; margin: auto; }
+        .template-T19 h1 { border-bottom: 1px solid #edebe9; padding-bottom: 10px; }
+        .template-T19 .meta { background: #f3f2f1; padding: 10px; border-radius: 4px; }
+        .template-T19 pre { background: #2d2d2d; color: #ccc; padding: 15px; border-radius: 4px; }
+
+        /* T20: 优雅衬线 */
+        .template-T20 { font-family: 'Lora', serif; color: #111; max-width: 700px; margin: 50px auto; line-height: 1.6; }
+        .template-T20 h1 { font-family: 'Cormorant Garamond', serif; font-size: 3em; font-weight: 700; }
+        .template-T20 .meta { font-style: italic; color: #777; }
+
+        /* T21: 未来感 */
+        .template-T21 { font-family: 'Exo 2', sans-serif; background-color: #000; color: #0ff; padding: 30px; display: grid; grid-template-columns: 1fr 3fr 1fr; gap: 20px; }
+        .template-T21 h1, .template-T21 .meta { grid-column: 1 / -1; text-align: center; }
+        .template-T21 h1 { font-size: 2.5em; color: #fff; }
+
+        /* T22: 手写风格 */
+        .template-T22 { font-family: 'Caveat', cursive; font-size: 1.3em; background: #f8fffe; color: #01579b; padding: 40px; }
+        .template-T22 h1 { font-size: 2.5em; }
+
+        /* T23: 糖果色 */
+        .template-T23 { font-family: 'Fredoka One', cursive; background: #ffeaa7; color: #d63031; padding: 30px; }
+        .template-T23 h1 { text-align: center; font-size: 2.5em; }
+        .template-T23 p { font-family: 'Nunito', sans-serif; color: #2d3436; }
+        .template-T23 .meta { text-align: center; font-family: 'Nunito', sans-serif; }
+
+        /* T24: 单栏居中 */
+        .template-T24 { font-family: 'Verdana', sans-serif; max-width: 550px; margin: 60px auto; padding: 30px; border: 1px solid #e0e0e0; }
+        .template-T24 h1 { text-align: center; font-weight: 600; }
+        .template-T24 .meta { text-align: center; font-size: 0.9em; color: #888; margin-bottom: 30px; }
+
+        /* T25: Mac终端 */
+        .template-T25 { font-family: 'Monaco', 'Menlo', monospace; background: #300a24; color: #f0f0f0; padding: 20px; border-radius: 8px; }
+        .template-T25 h1, .template-T25 .meta { color: #00ff00; }
+        .template-T25 .prompt::before { content: '$ '; color: #00ff00; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- 编辑器面板 -->
+        <section class="editor-panel">
+            <h1>✍️ 博客内容编辑</h1>
+            
+            <div class="form-group">
+                <label for="blog-title">文章标题</label>
+                <input type="text" id="blog-title" placeholder="输入引人注目的标题...">
+            </div>
+            <div class="form-group">
+                <label for="blog-author">作者</label>
+                <input type="text" id="blog-author" placeholder="你的名字">
+            </div>
+            <div class="form-group">
+                <label for="blog-date">发布日期</label>
+                <input type="date" id="blog-date">
+            </div>
+            <div class="form-group">
+                <label for="editor">文章正文</label>
+                <div id="editor"></div>
+            </div>
+            <div class="controls">
+                <button class="btn-danger" onclick="clearAll()">🗑️ 清空内容</button>
+                <button class="btn-success" onclick="exportHTML()">📥 导出为HTML</button>
+            </div>
+            <p class="status-message" id="status">提示：内容会自动保存在浏览器本地。</p>
+        </section>
+
+        <!-- 预览面板 -->
+        <aside class="preview-panel">
+            <div class="preview-header">
+                <h2>👀 实时预览与模板选择</h2>
+            </div>
+            <div class="form-group">
+                <label for="template-select">选择模板:</label>
+                <select id="template-select" onchange="updatePreview()">
+                    <optgroup label="极简与基础">
+                        <option value="T1">T1 - 极简主义</option>
+                        <option value="T11">T11 - 极端极简</option>
+                        <option value="T24">T24 - 单栏居中</option>
+                    </optgroup>
+                    <optgroup label="专业与学术">
+                        <option value="T2">T2 - 科技风</option>
+                        <option value="T7">T7 - 学术论文</option>
+                        <option value="T8">T8 - 个人博客-Medium风格</option>
+                        <option value="T15">T15 - 商务报告</option>
+                        <option value="T19">T19 - 官方文档</option>
+                    </optgroup>
+                    <optgroup label="文艺与生活">
+                        <option value="T3">T3 - 读书笔记</option>
+                        <option value="T6">T6 - 日记手帐</option>
+                        <option value="T12">T12 - 复古打字机</option>
+                        <option value="T13">T13 - 护眼模式</option>
+                        <option value="T14">T14 - 童话故事</option>
+                        <option value="T22">T22 - 手写风格</option>
+                    </optgroup>
+                    <optgroup label="媒体与杂志">
+                        <option value="T4">T4 - 报纸版式</option>
+                        <option value="T9">T9 - 杂志风格</option>
+                    </optgroup>
+                    <optgroup label="复古与主题">
+                        <option value="T17">T17 - 西部风格</option>
+                    </optgroup>
+                    <optgroup label="创意与个性">
+                        <option value="T5">T5 - 暗黑模式</option>
+                        <option value="T10">T10 - 赛博朋克</option>
+                        <option value="T18">T18 - 现代艺术 (渐变动画)</option>
+                        <option value="T20">T20 - 优雅衬线</option>
+                        <option value="T21">T21 - 未来感 (Grid布局)</option>
+                        <option value="T23">T23 - 糖果色</option>
+                        <option value="T25">T25 - Mac终端</option>
+                    </optgroup>
+                    <optgroup label="禅意与东方">
+                        <option value="T16">T16 - 禅意花园</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div id="preview-container" class="preview-container">
+                <!-- 动态内容将在这里渲染 -->
+            </div>
+        </aside>
+    </div>
+
+    <!-- 引入 Quill.js 和 Highlight.js -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    ['link', 'image'],
+                    ['clean']
+                ]
+            },
+            placeholder: '开始撰写你的精彩内容...'
+        });
+
+        // 自动保存与加载
+        function saveContent() {
+            localStorage.setItem('blogTitle', document.getElementById('blog-title').value);
+            localStorage.setItem('blogAuthor', document.getElementById('blog-author').value);
+            localStorage.setItem('blogDate', document.getElementById('blog-date').value);
+            localStorage.setItem('blogContent', quill.root.innerHTML);
+            localStorage.setItem('selectedTemplate', document.getElementById('template-select').value);
+            updatePreview(); // 保存后更新预览
+            document.getElementById('status').textContent = '✅ 已自动保存';
+        }
+        function loadContent() {
+            document.getElementById('blog-title').value = localStorage.getItem('blogTitle') || '';
+            document.getElementById('blog-author').value = localStorage.getItem('blogAuthor') || '';
+            document.getElementById('blog-date').value = localStorage.getItem('blogDate') || new Date().toISOString().split('T')[0];
+            quill.root.innerHTML = localStorage.getItem('blogContent') || '';
+            document.getElementById('template-select').value = localStorage.getItem('selectedTemplate') || 'T1';
+            updatePreview();
+        }
+        
+        function clearAll() {
+            if (confirm("确定要清空所有内容吗？此操作不可恢复。")) {
+                localStorage.clear();
+                document.getElementById('blog-title').value = '';
+                document.getElementById('blog-author').value = '';
+                document.getElementById('blog-date').value = '';
+                quill.setText('');
+                updatePreview();
+                document.getElementById('status').textContent = '⚠️ 所有内容已清空';
+            }
+        }
+
+        // 实时预览功能
+        function updatePreview() {
+            const title = document.getElementById('blog-title').value || '文章标题';
+            const author = document.getElementById('blog-author').value || '作者';
+            const date = document.getElementById('blog-date').value || new Date().toISOString().split('T')[0];
+            const content = quill.root.innerHTML || '<p>文章内容...</p>';
+            const templateClass = 'template-' + document.getElementById('template-select').value;
+            const metaInfo = `<p class="meta">作者: ${author} | 发布日期: ${date}</p>`;
+            
+            const previewHTML = `
+                <div class="${templateClass}">
+                    <h1>${title}</h1>
+                    ${metaInfo}
+                    <div class="content">${content}</div>
+                </div>
+            `;
+            document.getElementById('preview-container').innerHTML = previewHTML;
+        }
+
+        // 导出功能
+        function exportHTML() {
+            const title = document.getElementById('blog-title').value || '无标题';
+            const author = document.getElementById('blog-author').value || '佚名';
+            const date = document.getElementById('blog-date').value || new Date().toISOString().split('T')[0];
+            const content = quill.root.innerHTML;
+            const templateClass = 'template-' + document.getElementById('template-select').value;
+            
+            // 复制所有模板样式到导出文件中
+            const allStyles = Array.from(document.styleSheets[0].cssRules)
+                .filter(rule => rule.selectorText && rule.selectorText.includes(`.template-${document.getElementById('template-select').value}`))
+                .map(rule => rule.cssText)
+                .join('\n');
+
+            const metaInfo = `<p class="meta">作者: ${author} | 发布日期: ${date}</p>`;
+            const finalHTML = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        ${allStyles}
+        /* 通用代码高亮样式，如果需要 */
+        pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+    <div class="${templateClass}">
+        <h1>${title}</h1>
+        ${metaInfo}
+        <div class="content">
+            ${content}
+        </div>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>`;
+
+            const blob = new Blob([finalHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = title.replace(/\s+/g, '-') + '.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            document.getElementById('status').textContent = `🎉 成功导出 ${title}.html`;
+        }
+        
+        // 事件监听
+        window.onload = loadContent;
+        document.getElementById('blog-title').addEventListener('input', saveContent);
+        document.getElementById('blog-author').addEventListener('input', saveContent);
+        document.getElementById('blog-date').addEventListener('change', saveContent);
+        quill.on('text-change', saveContent);
+        document.getElementById('template-select').addEventListener('change', saveContent);
+
+    </script>
+
+</body>
+</html>
